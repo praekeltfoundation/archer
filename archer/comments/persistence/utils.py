@@ -38,8 +38,8 @@ class Schema(object):
         for k, v in content.items():
             if not k in self.schema:
                 raise ValidationError("Key '%s' does not exist in schema" % k)
-
-            if (v is None) and self._isrequired(k):
+ 
+            if self._isrequired(k) and (v is None):
                 raise ValidationError("Key '%s' must not be None" % k)
 
             if v is not None:

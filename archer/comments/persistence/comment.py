@@ -18,7 +18,7 @@ class Comment(object):
         })
 
     def _get_bucket(self, resource):
-        return self.client.bucket('comment_%' % resource)
+        return self.client.bucket('comment_%s' % resource)
 
     @defer.inlineCallbacks
     def add(self, author, time, resource, comment, parent=None):
@@ -36,7 +36,7 @@ class Comment(object):
         comment_id = uuid.uuid4()
         b = self._get_bucket(resource)
 
-        comment = b.new(comment_id, doc)
+        comment = b.new(comment_id.hex, doc)
         comment.add_index('time_int', time)
 
         yield comment.store()
