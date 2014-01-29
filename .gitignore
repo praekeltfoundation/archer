@@ -3,3 +3,4 @@
 /ve/
 *.pyc
 dropin.cache
+twistd.pid
