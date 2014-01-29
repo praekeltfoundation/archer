@@ -1,5 +1,4 @@
 import json
-from pprint import pprint
 from urllib import urlencode
 from StringIO import StringIO
 
