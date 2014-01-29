@@ -17,7 +17,7 @@ class Comment(object):
             'resource':  {'type': uuid.UUID}
         })
 
-    def _get_bucket(self, resource)
+    def _get_bucket(self, resource):
         return self.client.bucket('comment_%' % resource)
 
     @defer.inlineCallbacks
