@@ -22,11 +22,11 @@ class Schema(object):
 
             if (v is None) and not self._isrequired(k):
                 raise ValidationError("Key '%s' must not be None" % k)
-
-            try:
-                self.schema[k]['type'](v)
-            except:
-                raise ValidationError("'%s': %s, is not type %s" % (
-                    k, repr(v), self.schema[k]
-                ))
+            else:
+                try:
+                    self.schema[k]['type'](v)
+                except:
+                    raise ValidationError("'%s': %s, is not type %s" % (
+                        k, repr(v), self.schema[k]
+                    ))
         
