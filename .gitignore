@@ -1,4 +1,7 @@
 /_trial_temp/
 *.egg-info/
 /ve/
+/webapp/ve/
 *.pyc
+*.db
+/webapp/app/static/
