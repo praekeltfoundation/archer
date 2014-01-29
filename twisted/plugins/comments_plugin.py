@@ -22,7 +22,7 @@ class ServiceMaker(object):
     def makeService(self, options):
         return internet.TCPServer(
             int(options['port']),
-            server.Site(comments.ServiceRoot())
+            server.Site(comments.ServiceRoot().app.resource())
         )
 
 serviceMaker = ServiceMaker()
