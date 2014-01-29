@@ -10,7 +10,7 @@ services:
   - neo4j
 install:
   - "pip install coveralls --use-wheel"
-  - "python setup.py install"
+  - "pip install -e ."
 script:
   - coverage run --source=archer `which trial` archer
 after_success:
