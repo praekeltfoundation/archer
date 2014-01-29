@@ -55,8 +55,7 @@ class LoginForm(forms.Form):
         return self.cleaned_data
 
     def check_for_test_cookie(self):
-        if self.request and not self.request.session.test_cookie_worked():
-            raise forms.ValidationError(self.error_messages['no_cookies'])
+        pass
 
     def get_user_id(self):
         if self.user_cache:
