@@ -8,7 +8,6 @@ services:
   - riak
   - redis-server
 install:
-  - "pip install -r requirements.pip --use-wheel"
   - "pip install coveralls --use-wheel"
   - "python setup.py install"
 script:
