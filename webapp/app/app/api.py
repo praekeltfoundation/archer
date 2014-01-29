@@ -10,10 +10,10 @@ class InvalidResponse(Exception):
 def register(user):
     response = requests.put(settings.USER_SERVICE_URL, json.dumps(user))
 
-    if response.status_code == 200:
-        return json.loads(response.text)
+    if not response.status_code == 200:
+        raise InvalidResponse(response.text)
 
-    raise InvalidResponse(response.text)
+    return response
 
 
 def authenticate(username, password):

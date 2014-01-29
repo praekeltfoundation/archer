@@ -24,7 +24,7 @@ class ApiTestCase(TestCase):
             'msisdn': '27123456789',
         }
         response = register(user)
-        self.assertEquals(response.get('uuid'), "random-uuid-for-the-user")
+        self.assertEquals(response.status_code, 200)
 
         requests_response.status_code = 400
         mock_put.return_value = requests_response
