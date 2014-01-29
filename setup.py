@@ -17,6 +17,7 @@ setup(
     install_requires=[
         'Twisted',
         'aludel',
+        'treq',
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
