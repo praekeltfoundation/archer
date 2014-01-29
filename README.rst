@@ -15,6 +15,11 @@ Install
     (ve)$ pip install -e .
     (ve)$ trial archer
 
+Docs
+~~~~
+
+Hopefully there'll be some at http://archer.rtfd.org, these are automatically
+built from the sphinx-docs in ``./docs``.
 
 
 Recommended reading
