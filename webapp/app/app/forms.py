@@ -3,9 +3,26 @@ from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth import authenticate
 from app.api import register, InvalidResponse
 
+def as_div(form):
+    """This formatter arranges label, widget, help text and error messages by
+    using divs.  Apply to custom form classes, or use to monkey patch form
+    classes not under our direct control."""
+    # Yes, evil but the easiest way to set this property for all forms.
+    form.required_css_class = 'required'
+
+    return form._html_output(
+        normal_row=u'<div class="form-group"><div %(html_class_attr)s>%(label)s %(errors)s <div class="helptext">%(help_text)s</div> %(field)s</div></div>',
+        error_row=u'%s',
+        row_ender='</div>',
+        help_text_html=u'%s',
+        errors_on_separate_row=False
+    )
+
+
 
 class LoginForm(forms.Form):
-    username = forms.EmailField(label=_("Username"))
+    as_div = as_div
+    username = forms.CharField(label=_('Username'), max_length=100)
     password = forms.CharField(label=_("Password"), widget=forms.PasswordInput)
 
     error_messages = {
@@ -51,6 +68,8 @@ class LoginForm(forms.Form):
 
 
 class RegistrationForm(forms.Form):
+    as_div = as_div
+
     def __init__(self, req=None, *args, **kwargs):
         self.request = req
         self.user_cache = None

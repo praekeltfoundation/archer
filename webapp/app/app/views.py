@@ -65,10 +65,6 @@ def login(request, template_name='login.html',
         except InvalidResponse:
             msg = _("Error. Please try again later")
             messages.error(request, msg, fail_silently=True)
-        except:
-            msg = _("Error. Please try again later")
-            messages.error(request, msg, fail_silently=True)
-
     else:
         form = authentication_form(request)
 
@@ -88,7 +84,7 @@ def login(request, template_name='login.html',
 
 
 def register(request):
-    next = request.REQUEST.get('next', reverse('home'))
+    next = request.REQUEST.get('next') or reverse('home')
     if request.method == 'POST':
         form = RegistrationForm(data=request.POST, req=request)
         try:
@@ -100,9 +96,9 @@ def register(request):
         except InvalidResponse:
             msg = _("Error. Please try again later")
             messages.error(request, msg, fail_silently=True)
-        except:
-            msg = _("Error. Please try again later")
-            messages.error(request, msg, fail_silently=True)
+#        except:
+#            msg = _("Error. Please try again later")
+#            messages.error(request, msg, fail_silently=True)
     else:
         form = RegistrationForm()
 

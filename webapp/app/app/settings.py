@@ -50,6 +50,18 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
+TEMPLATE_CONTEXT_PROCESSORS = (
+    "django.contrib.auth.context_processors.auth",
+    "django.core.context_processors.debug",
+    "django.core.context_processors.i18n",
+    "django.core.context_processors.media",
+    "django.core.context_processors.static",
+    "django.core.context_processors.tz",
+    "django.contrib.messages.context_processors.messages",
+    "django.core.context_processors.request",
+
+)
+
 ROOT_URLCONF = 'app.urls'
 
 WSGI_APPLICATION = 'app.wsgi.application'
@@ -93,3 +105,4 @@ TEMPLATE_DIRS = (os.path.join(BASE_DIR, 'app/templates/'), )
 
 USER_SERVICE_URL = 'http://localhost:7001'
 AUTHENTICATION_TOKEN_KEY = 'app-authentication-token-key'
+LOGIN_REDIRECT_URL = '/'
