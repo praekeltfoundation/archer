@@ -5,13 +5,24 @@ Working title & repository for "Rethinking the Future of Content Delivery"
 
 |travis|_ |coveralls|_
 
+Install
+~~~~~~~
+
+::
+
+    $ virtualenv ve
+    $ source ve/bin/activate
+    (ve)$ pip install -e .
+    (ve)$ trial archer
+
+
 
 Recommended reading
 ~~~~~~~~~~~~~~~~~~~
 
 1. The hackpad_ that kicked things off.
 2. Praekelt's `guiding principles`_ for the design of systems.
-3. Aludel_ jerith's mini framework for building restful APIs.
+3. Aludel_, jerith's mini framework for building restful APIs.
 
 
 .. |travis| image:: https://travis-ci.org/praekelt/archer.png?branch=develop
