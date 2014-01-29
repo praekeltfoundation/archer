@@ -16,7 +16,8 @@ setup(
     include_package_data=True,
     install_requires=[
         'Twisted',
-        'riakasaurus'
+        'riakasaurus',
+        'aludel'
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',
