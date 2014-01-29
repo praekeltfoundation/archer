@@ -53,7 +53,7 @@ def login(request, template_name='login.html',
                 user = form.get_user()
                 auth_login(request, user)
                 token = form.cleaned_data['token']
-                request.session[settings.CTW_AUTHENTICATION_TOKEN_KEY] = token
+                request.session[settings.AUTHENTICATION_TOKEN_KEY] = token
 
                 if request.session.test_cookie_worked():
                     request.session.delete_test_cookie()

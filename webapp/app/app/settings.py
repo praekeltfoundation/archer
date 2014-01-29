@@ -53,7 +53,10 @@ MIDDLEWARE_CLASSES = (
 ROOT_URLCONF = 'app.urls'
 
 WSGI_APPLICATION = 'app.wsgi.application'
-
+AUTHENTICATION_BACKENDS = (
+    'app.backends.UserBackend',
+    'django.contrib.auth.backends.ModelBackend',
+)
 
 # Database
 # https://docs.djangoproject.com/en/1.6/ref/settings/#databases
@@ -88,5 +91,5 @@ STATICFILES_DIRS = (os.path.join(BASE_DIR, 'app/static/'), )
 
 TEMPLATE_DIRS = (os.path.join(BASE_DIR, 'app/templates/'), )
 
-NEO4J_URL = 'http://localhost:7474'
+USER_SERVICE_URL = 'http://localhost:7001'
 AUTHENTICATION_TOKEN_KEY = 'app-authentication-token-key'

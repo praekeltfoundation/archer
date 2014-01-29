@@ -5,11 +5,11 @@ from app.api import register, InvalidResponse
 
 
 class LoginForm(forms.Form):
-    username = forms.EmailField(label=_("Email"))
+    username = forms.EmailField(label=_("Username"))
     password = forms.CharField(label=_("Password"), widget=forms.PasswordInput)
 
     error_messages = {
-        'invalid_login': _("Please enter a correct email and password."),
+        'invalid_login': _("Please enter a correct username and password."),
         'no_cookies': _("Your Web browser doesn't appear to have cookies "
                         "enabled. Cookies are required for logging in."),
         'inactive': _("This account is inactive."),
@@ -95,6 +95,9 @@ class RegistrationForm(forms.Form):
             }
             try:
                 register(user)
+                self.user_cache = authenticate(request=self.request,
+                                               username=username,
+                                               password=password)
             except InvalidResponse:
                 raise forms.ValidationError(
                     self.error_messages['duplicate_username'])
