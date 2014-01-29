@@ -20,7 +20,7 @@ class Schema(object):
             if not k in self.schema:
                 raise ValidationError("Key '%s' does not exist in schema" % k)
 
-            if (v is None) and self._isrequired(k):
+            if (v is None) and not self._isrequired(k):
                 raise ValidationError("Key '%s' must not be None" % k)
 
             try:
