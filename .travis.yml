@@ -7,7 +7,9 @@ node_js:
 services:
   - riak
   - redis-server
-  - neo4j
+before_install:
+  - sudo apt-get install neo4j
+  - sudo service neo4j-service start
 install:
   - "pip install coveralls --use-wheel"
   - "pip install -e ."
