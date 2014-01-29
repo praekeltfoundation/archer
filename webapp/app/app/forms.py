@@ -61,9 +61,9 @@ class RegistrationForm(forms.Form):
         'password_mismatch': _("The two password fields didn't match."),
     }
 
-    first_name = forms.CharField(label=_('Firstname'), max_length=100)
-    last_name = forms.CharField(label=_('Surname'), max_length=100)
-    username = forms.EmailField(label=_('Email'))
+    username = forms.CharField(label=_('Username'), max_length=100)
+    mobile_number = forms.CharField(label=_('Mobile number'), max_length=100)
+    email = forms.EmailField(label=_('Email'))
     password1 = forms.CharField(label=_("Password"),
                                 widget=forms.PasswordInput)
     password2 = forms.CharField(label=_("Password confirmation"),
@@ -83,15 +83,15 @@ class RegistrationForm(forms.Form):
         username = self.cleaned_data.get('username')
         password = self.cleaned_data.get('password1')
         password2 = self.cleaned_data.get('password2')
-        first_name = self.cleaned_data.get('first_name')
-        last_name = self.cleaned_data.get('last_name')
+        email = self.cleaned_data.get('email')
+        mobile_number = self.cleaned_data.get('mobile_number')
 
         if username and password and password2:
             user = {
                 'username': username,
                 'password': password,
-                'first_name': first_name,
-                'last_name': last_name,
+                'email': email,
+                'msisdn': mobile_number,
             }
             try:
                 register(user)
