@@ -11,10 +11,10 @@ class Comment(object):
 
         self.comment_schema = utils.Schema({
             'author':    {'type': str},
-            'time':      {'type': int},
+            'time':      {'type': int, 'validators': (utils.validate_timestamp,)},
             'comment':   {'type': str},
-            'parent':    {'type': uuid.UUID, 'required': False},
-            'resource':  {'type': uuid.UUID}
+            'parent':    {'type': str, 'required': False, 'validators': (utils.validate_uuid,)},
+            'resource':  {'type': str, 'validators': (utils.validate_uuid,)}
         })
 
     def _get_bucket(self, resource):
