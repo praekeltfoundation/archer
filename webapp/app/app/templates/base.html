@@ -55,15 +55,6 @@
   <div role="main">
     <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
       <div class="container">
-        {% if messages %}
-            <div class="message">
-            {% for message in messages %}
-            <div class="{{message.tags}}">
-            {{ message|safe }}
-            </div>
-            {% endfor %}
-            </div>
-        {% endif %}
         <div class="navbar-header">
           <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
             <span class="sr-only">Toggle navigation</span>
@@ -83,17 +74,27 @@
             <div class="form-group">
               <input type="password" placeholder="Password" class="form-control" name="password">
             </div>
+            {% csrf_token %}
             <button type="submit" class="btn btn-success">Sign in</button>
             <a href="{% url 'join' %}" class="btn btn-danger">Register</a>
           {% else %}
                 <a href="{% url 'logout' %}" class="btn btn-warning">Logout</a>
           {% endif %}
-          {% csrf_token %}
           </form>
           {% endblock %}
         </div><!--/.navbar-collapse -->
       </div>
     </div>
+
+    {% if messages %}
+        <div class="message">
+        {% for message in messages %}
+        <div class="{{message.tags}}">
+        {{ message|safe }}
+        </div>
+        {% endfor %}
+        </div>
+    {% endif %}
 
     {% block content %}{% endblock %}
   </div>
