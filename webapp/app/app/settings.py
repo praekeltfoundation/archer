@@ -89,3 +89,4 @@ STATICFILES_DIRS = (os.path.join(BASE_DIR, 'app/static/'), )
 TEMPLATE_DIRS = (os.path.join(BASE_DIR, 'app/templates/'), )
 
 NEO4J_URL = 'http://localhost:7474'
+AUTHENTICATION_TOKEN_KEY = 'app-authentication-token-key'

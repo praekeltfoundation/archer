@@ -20,8 +20,8 @@ def home(request):
 
 
 def logout(request):
-    if settings.CTW_AUTHENTICATION_TOKEN_KEY in request.session:
-        del request.session[settings.CTW_AUTHENTICATION_TOKEN_KEY]
+    if settings.AUTHENTICATION_TOKEN_KEY in request.session:
+        del request.session[settings.AUTHENTICATION_TOKEN_KEY]
     return auth_logout(request, next_page=reverse('home'))
 
 

@@ -1,6 +1,6 @@
 from mock import patch
 from django.test import TestCase
-from app.api import register
+from app.api import register, InvalidResponse
 
 
 class RequestsResponse:
@@ -14,6 +14,7 @@ class ApiTestCase(TestCase):
     def test_registration(self, mock_put):
         requests_response = RequestsResponse()
         requests_response.status_code = 200
+        requests_response.text = '{"uuid": "random-uuid-for-the-user"}'
         mock_put.return_value = requests_response
 
         user = {
@@ -23,5 +24,10 @@ class ApiTestCase(TestCase):
             'msisdn': '27123456789',
         }
         response = register(user)
+        self.assertEquals(response.get('uuid'), "random-uuid-for-the-user")
 
-        self.assertEquals(response.status_code, 200)
+        requests_response.status_code = 400
+        mock_put.return_value = requests_response
+
+        with self.assertRaises(InvalidResponse):
+            register(user)
