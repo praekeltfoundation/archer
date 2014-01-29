@@ -10,7 +10,7 @@ class Comment(object):
         self.client = client
 
         self.comment_schema = utils.Schema({
-            'author':    {'type': str},
+            'author':    {'type': str, 'validators': (utils.validate_uuid,)},
             'time':      {'type': int, 'validators': (utils.validate_timestamp,)},
             'comment':   {'type': str},
             'parent':    {'type': str, 'required': False, 'validators': (utils.validate_uuid,)},
