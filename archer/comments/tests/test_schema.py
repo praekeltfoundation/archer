@@ -6,9 +6,10 @@ from archer.comments.persistence import utils
 class SchemaTest(unittest.TestCase):
     def test_validate(self):
         schema = utils.Schema({
-            'name': str,
-            'phone': int,
-            'pencils': list
+            'name': {'type': str},
+            'phone': {'type': int},
+            'pencils': {'type': list},
+            'dogs': {'type': list, 'required': False}
         })
 
         good = {
