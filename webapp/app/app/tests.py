@@ -1,8 +1,13 @@
+import json
+
 from mock import patch
+
 from django.test import TestCase
 from django.test.client import Client
-from app.api import register, InvalidResponse, authenticate
 from django.contrib.auth.models import User
+from django.conf import settings
+
+from app.api import register, InvalidResponse, authenticate
 
 
 class RequestsResponse:
@@ -26,12 +31,16 @@ class ApiTestCase(TestCase):
         mock_put.return_value = RequestsResponse(200)
         response = register(self.user)
         self.assertEquals(response.status_code, 200)
+        mock_put.assert_called_with(
+            settings.USER_SERVICE_URL, json.dumps(self.user))
 
     @patch('requests.put')
     def test_registration_fail(self, mock_put):
         mock_put.return_value = RequestsResponse(400)
         with self.assertRaises(InvalidResponse):
             register(self.user)
+        mock_put.assert_called_with(
+            settings.USER_SERVICE_URL, json.dumps(self.user))
 
     @patch('requests.post')
     def test_authentication(self, mock_post):
