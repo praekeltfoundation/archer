@@ -17,5 +17,16 @@ def register(user):
 
 
 def authenticate(username, password):
-    import uuid
-    return str(uuid.uuid4())
+    '''
+    Expects authentication toke back
+    '''
+    data = {
+        'username': username,
+        'password': password
+    }
+    response = requests.post(settings.USER_SERVICE_URL, json.dumps(data))
+
+    if not response.status_code == 200:
+        raise InvalidResponse(response.text)
+
+    return response.text

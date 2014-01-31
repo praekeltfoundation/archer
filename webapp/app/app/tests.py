@@ -1,6 +1,6 @@
 from mock import patch
 from django.test import TestCase
-from app.api import register, InvalidResponse
+from app.api import register, InvalidResponse, authenticate
 
 
 class RequestsResponse:
@@ -31,3 +31,19 @@ class ApiTestCase(TestCase):
 
         with self.assertRaises(InvalidResponse):
             register(user)
+
+    @patch('requests.post')
+    def test_authentication(self, mock_post):
+        requests_response = RequestsResponse()
+        requests_response.status_code = 200
+        requests_response.text = 'random-uuid-for-the-user'
+        mock_post.return_value = requests_response
+
+        response = authenticate('joesoap', '1234')
+        self.assertEquals(response, 'random-uuid-for-the-user')
+
+        requests_response.status_code = 400
+        mock_post.return_value = requests_response
+
+        with self.assertRaises(InvalidResponse):
+            authenticate('joesoap', 'invalid password')
