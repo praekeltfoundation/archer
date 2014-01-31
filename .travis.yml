@@ -19,6 +19,6 @@ install:
   - "pip install -r webapp/requirements.pip"
 script:
   - coverage run --source=archer `which trial` archer
-  - cd webapp/app && coverage run manage.py test && cd ../..
+  - coverage run webapp/app/manage.py test app
 after_success:
   - coveralls
