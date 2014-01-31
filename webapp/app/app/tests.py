@@ -1,4 +1,5 @@
 import json
+from uuid import uuid4
 
 from mock import patch
 
@@ -43,20 +44,33 @@ class ApiTestCase(TestCase):
             settings.USER_SERVICE_URL, json.dumps(self.user))
 
     @patch('requests.post')
-    def test_authentication(self, mock_post):
-        requests_response = RequestsResponse()
-        requests_response.status_code = 200
-        requests_response.text = 'random-uuid-for-the-user'
-        mock_post.return_value = requests_response
+    def test_authentication_success(self, mock_post):
+        uuid = uuid4()
+        mock_post.return_value = RequestsResponse(200, json.dumps({
+            'user_id': uuid.hex,
+        }))
 
         response = authenticate('joesoap', '1234')
-        self.assertEquals(response, 'random-uuid-for-the-user')
+        self.assertEquals(response, json.dumps({
+            'user_id': uuid.hex
+        }))
+        mock_post.assert_called_with(
+            settings.USER_SERVICE_URL, json.dumps({
+                'username': 'joesoap',
+                'password': '1234',
+            }))
 
-        requests_response.status_code = 400
-        mock_post.return_value = requests_response
+    @patch('requests.post')
+    def test_authentication_fail(self, mock_post):
+        mock_post.return_value = RequestsResponse(400)
 
         with self.assertRaises(InvalidResponse):
             authenticate('joesoap', 'invalid password')
+        mock_post.assert_called_with(
+            settings.USER_SERVICE_URL, json.dumps({
+                'username': 'joesoap',
+                'password': 'invalid password'
+            }))
 
     @patch('requests.post')
     @patch('requests.put')
