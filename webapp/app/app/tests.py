@@ -12,26 +12,26 @@ class RequestsResponse:
 
 
 class ApiTestCase(TestCase):
-    @patch('requests.put')
-    def test_registration(self, mock_put):
-        requests_response = RequestsResponse()
-        requests_response.status_code = 200
-        mock_put.return_value = requests_response
 
-        user = {
+    def setUp(self):
+        self.user = {
             'username': 'joesoap',
             'password': '1234',
             'email': 'some@email.com',
             'msisdn': '27123456789',
         }
-        response = register(user)
+
+    @patch('requests.put')
+    def test_registration_success(self, mock_put):
+        mock_put.return_value = RequestsResponse(200)
+        response = register(self.user)
         self.assertEquals(response.status_code, 200)
 
-        requests_response.status_code = 400
-        mock_put.return_value = requests_response
-
+    @patch('requests.put')
+    def test_registration_fail(self, mock_put):
+        mock_put.return_value = RequestsResponse(400)
         with self.assertRaises(InvalidResponse):
-            register(user)
+            register(self.user)
 
     @patch('requests.post')
     def test_authentication(self, mock_post):
