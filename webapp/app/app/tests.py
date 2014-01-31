@@ -83,11 +83,31 @@ class ApiTestCase(TestCase):
         resp = client.get('/')
         self.assertContains(resp, 'Logout')
 
+        #test api error result
+        put_response.status_code = 400
+        mock_put.return_value = put_response
+        resp = client.post('/join/', data)
+        self.assertEquals(resp.status_code, 200)
+        self.assertContains(resp, 'A user with that username already exists.')
+
+        #test auth error after register
+        put_response.status_code = 200
+        mock_put.return_value = put_response
+        post_response.status_code = 400
+        mock_post.return_value = post_response
+
+        resp = client.post('/join/', data)
+        self.assertEquals(resp.status_code, 200)
+        self.assertContains(resp, 'Error. Please try again later')
+
         #Logout and test Login view
         client.get('/logout/')
 
         resp = client.get('/')
         self.assertNotContains(resp, 'Logout')
+
+        post_response.status_code = 200
+        mock_post.return_value = post_response
 
         data = {
             'username': 'joesoap',

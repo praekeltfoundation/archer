@@ -19,7 +19,6 @@ def as_div(form):
     )
 
 
-
 class LoginForm(forms.Form):
     as_div = as_div
     username = forms.CharField(label=_('Username'), max_length=100)
@@ -30,6 +29,7 @@ class LoginForm(forms.Form):
         'no_cookies': _("Your Web browser doesn't appear to have cookies "
                         "enabled. Cookies are required for logging in."),
         'inactive': _("This account is inactive."),
+        'authentication_failed': _("Error. Please try again later"),
     }
 
     def __init__(self, req=None, *args, **kwargs):
@@ -42,9 +42,14 @@ class LoginForm(forms.Form):
         password = self.cleaned_data.get('password')
 
         if username and password:
-            self.user_cache = authenticate(request=self.request,
-                                           username=username,
-                                           password=password)
+            try:
+                self.user_cache = authenticate(request=self.request,
+                                               username=username,
+                                               password=password)
+            except InvalidResponse:
+                raise forms.ValidationError(
+                    self.error_messages['authentication_failed'])
+
             if self.user_cache is None:
                 raise forms.ValidationError(
                     self.error_messages['invalid_login'])
@@ -77,6 +82,7 @@ class RegistrationForm(forms.Form):
     error_messages = {
         'duplicate_username': _("A user with that username already exists."),
         'password_mismatch': _("The two password fields didn't match."),
+        'authentication_failed': _("Error. Please try again later"),
     }
 
     username = forms.CharField(label=_('Username'), max_length=100)
@@ -113,12 +119,17 @@ class RegistrationForm(forms.Form):
             }
             try:
                 register(user)
+            except InvalidResponse:
+                raise forms.ValidationError(
+                    self.error_messages['duplicate_username'])
+
+            try:
                 self.user_cache = authenticate(request=self.request,
                                                username=username,
                                                password=password)
             except InvalidResponse:
                 raise forms.ValidationError(
-                    self.error_messages['duplicate_username'])
+                    self.error_messages['authentication_failed'])
         return self.cleaned_data
 
     def get_user(self):
