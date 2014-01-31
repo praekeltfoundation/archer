@@ -19,6 +19,6 @@ install:
   - "pip install -r webapp/requirements.pip"
 script:
   - coverage run --source=archer `which trial` archer
-  - cd webapp && PYTHONPATH=app coverage run --source=app `which django-admin.py` test --settings=app.settings && cd ..
+  - cd webapp/app && coverage run manage.py test && cd ../..
 after_success:
   - coveralls
