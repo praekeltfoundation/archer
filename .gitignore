@@ -7,3 +7,4 @@ dropin.cache
 *.db
 /webapp/app/static/
 twistd.pid
+.coverage
