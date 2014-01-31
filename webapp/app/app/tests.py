@@ -82,3 +82,19 @@ class ApiTestCase(TestCase):
 
         resp = client.get('/')
         self.assertContains(resp, 'Logout')
+
+        #Logout and test Login view
+        client.get('/logout/')
+
+        resp = client.get('/')
+        self.assertNotContains(resp, 'Logout')
+
+        data = {
+            'username': 'joesoap',
+            'password': '1234'
+        }
+        resp = client.post('/login/', data)
+        self.assertEquals(resp.status_code, 302)
+
+        resp = client.get('/')
+        self.assertContains(resp, 'Logout')
