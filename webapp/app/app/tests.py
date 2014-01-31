@@ -1,6 +1,8 @@
 from mock import patch
 from django.test import TestCase
+from django.test.client import Client
 from app.api import register, InvalidResponse, authenticate
+from django.contrib.auth.models import User
 
 
 class RequestsResponse:
@@ -14,7 +16,6 @@ class ApiTestCase(TestCase):
     def test_registration(self, mock_put):
         requests_response = RequestsResponse()
         requests_response.status_code = 200
-        requests_response.text = '{"uuid": "random-uuid-for-the-user"}'
         mock_put.return_value = requests_response
 
         user = {
@@ -47,3 +48,37 @@ class ApiTestCase(TestCase):
 
         with self.assertRaises(InvalidResponse):
             authenticate('joesoap', 'invalid password')
+
+    @patch('requests.post')
+    @patch('requests.put')
+    def test_registration_view(self, mock_put, mock_post):
+        put_response = RequestsResponse()
+        put_response.status_code = 200
+        mock_put.return_value = put_response
+
+        post_response = RequestsResponse()
+        post_response.status_code = 200
+        post_response.text = 'random-uuid-for-the-user'
+        mock_post.return_value = post_response
+
+        client = Client()
+
+        resp = client.get('/')
+        self.assertNotContains(resp, 'Logout')
+
+        resp = client.get('/join/')
+        self.assertContains(resp, 'Enter the same password as above')
+
+        data = {
+            'username': 'joesoap',
+            'password1': '1234',
+            'password2': '1234',
+            'email': 'test@email.com',
+            'mobile_number': '27123456789',
+        }
+        resp = client.post('/join/', data)
+        self.assertEquals(resp.status_code, 302)
+        self.assertTrue(User.objects.filter(username='joesoap').exists())
+
+        resp = client.get('/')
+        self.assertContains(resp, 'Logout')
