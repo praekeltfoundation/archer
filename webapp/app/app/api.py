@@ -29,4 +29,4 @@ def authenticate(username, password):
     if not response.status_code == 200:
         raise InvalidResponse(response.text)
 
-    return response.text
+    return response.json()

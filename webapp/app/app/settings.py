@@ -109,6 +109,6 @@ STATICFILES_DIRS = (os.path.join(BASE_DIR, 'app/static/'), )
 
 TEMPLATE_DIRS = (os.path.join(BASE_DIR, 'app/templates/'), )
 
-USER_SERVICE_URL = 'http://localhost:7001'
+USER_SERVICE_URL = 'http://localhost:7474'
 AUTHENTICATION_TOKEN_KEY = 'app-authentication-token-key'
 LOGIN_REDIRECT_URL = '/'
