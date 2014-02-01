@@ -8,13 +8,13 @@ from twisted.web import server
 from archer.users.api import UserServiceApp
 
 
-DEFAULT_PORT = '8080'
+DEFAULT_PORT = 'tcp:8080'
 
 
 class Options(usage.Options):
     """Command line args when run as a twistd plugin"""
     # TODO other args
-    optParameters = [["port", "p", DEFAULT_PORT,
+    optParameters = [["endpoint", "e", DEFAULT_PORT,
                       "Port number for airtime-service to listen on"],
                      ["database-connection-string", "d", None,
                       "Database connection string"]]
@@ -29,4 +29,4 @@ def makeService(options):
     app = UserServiceApp(
         options['database-connection-string'], reactor=reactor)
     site = server.Site(app.app.resource())
-    return strports.service(options['port'], site)
+    return strports.service(options['endpoint'], site)

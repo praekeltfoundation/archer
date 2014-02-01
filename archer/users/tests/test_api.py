@@ -1,18 +1,17 @@
-from datetime import datetime
-from hashlib import md5
-from itertools import izip_longest
 import json
 from urllib import urlencode
 from StringIO import StringIO
 
 from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.trial.unittest import TestCase
 from twisted.web.client import Agent, FileBodyProducer, readBody
 from twisted.web.http_headers import Headers
 from twisted.web.server import Site
 
-from archer.users.api import UserServiceApp
+from treq._utils import get_global_pool
+
+from archer.users.api import UserServiceApp, NEO4J_URL, cypher_query
 
 
 class ApiClient(object):
@@ -50,16 +49,36 @@ class TestUserServiceApp(TestCase):
     timeout = 5
 
     def setUp(self):
-        self.user_service = UserServiceApp("sqlite://", reactor=reactor)
+        self.user_service = UserServiceApp(NEO4J_URL, reactor=reactor)
         site = Site(self.user_service.app.resource())
         self.listener = reactor.listenTCP(0, site, interface='localhost')
         self.listener_port = self.listener.getHost().port
         self.client = ApiClient('http://localhost:%s' % (self.listener_port,))
-
-    def tearDown(self):
-        return self.listener.loseConnection()
+        self.addCleanup(self.listener.loseConnection)
+        self.addCleanup(self.clear_neo4j)
 
     @inlineCallbacks
-    def test_request(self):
-        resp = yield self.client.put_json('/', {}, 200)
-        self.assertEqual(resp['content'], 'hello world')
+    def clear_neo4j(self):
+        clear_command = """
+            MATCH (n)
+            OPTIONAL MATCH (n)-[r]-()
+            DELETE n,r
+        """
+        body = yield cypher_query(clear_command)
+        # NOTE: close the pool's connections
+        pool = get_global_pool()
+        pool.closeCachedConnections()
+        returnValue(body)
+
+    @inlineCallbacks
+    def test_create_user_simple(self):
+        payload = {
+            'username': 'foo',
+            'password': 'bar',
+            'email': 'foo@bar.com',
+            'msisdn': '+27000000000',
+        }
+        resp = yield self.client.put_json('/', payload, 200)
+        # NOTE: still figuring out what Neo4J returns
+        neo4j_data = resp['data'][0][0]
+        self.assertEqual(neo4j_data['data'], payload)

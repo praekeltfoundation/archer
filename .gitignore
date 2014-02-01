@@ -1,5 +1,10 @@
 /_trial_temp/
 *.egg-info/
 /ve/
+/webapp/ve/
 *.pyc
 dropin.cache
+*.db
+/webapp/app/static/
+twistd.pid
+.coverage

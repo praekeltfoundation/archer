@@ -7,10 +7,18 @@ node_js:
 services:
   - riak
   - redis-server
+before_install:
+  - sudo apt-get update -qq
+  - sudo wget -O - http://debian.neo4j.org/neotechnology.gpg.key | sudo apt-key add -
+  - sudo bash -c 'echo "deb http://debian.neo4j.org/repo stable/" > /etc/apt/sources.list.d/neo4j.list'
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq neo4j
 install:
   - "pip install coveralls --use-wheel"
-  - "python setup.py install"
+  - "pip install -e ."
+  - "pip install -r webapp/requirements.pip"
 script:
   - coverage run --source=archer `which trial` archer
+  - coverage run --source=app webapp/app/manage.py test app
 after_success:
   - coveralls
