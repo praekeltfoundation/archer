@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block css %}
+{{block.super}}
+<style>
+/* Move down content because we have a fixed navbar that is 50px tall */
+body {
+  padding-top: 50px;
+  padding-bottom: 20px;
+}
+</style>
+{% endblock css %}
+
+{% block page_title %}Archer - Register{% endblock %}
+{% block page_class %}register-page{% endblock %}
+{% block login_form %}{% endblock %}
+
+{% block content %}
+<!-- This code is taken from http://getbootstrap.com/examples/jumbotron/ -->
+    <div class="jumbotron">
+      <div class="container">
+        <h1>Register</h1>
+      </div>
+    </div>
+
+    <div class="container">
+      <!-- Example row of columns -->
+      <div class="row">
+        <div class="col-md-4">
+
+        <form method="POST" role="form" class="form-horizontal">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.REQUEST.next }}" />
+            {{ form.as_div }}
+            <input type="submit" class="btn btn-success" value="{% trans "Register" %}" />
+        </form>
+      </div>
+      </div>
+    </div>
+
+{% endblock %}

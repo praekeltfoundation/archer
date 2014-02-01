@@ -1,2 +1,5 @@
 django
 south
+django_compressor
+mock
+requests

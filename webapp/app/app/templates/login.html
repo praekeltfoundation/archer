@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block css %}
+{{block.super}}
+<style>
+/* Move down content because we have a fixed navbar that is 50px tall */
+body {
+  padding-top: 50px;
+  padding-bottom: 20px;
+}
+</style>
+{% endblock css %}
+
+{% block page_title %}Archer - Register{% endblock %}
+{% block page_class %}register-page{% endblock %}
+{% block login_form %}{% endblock %}
+
+{% block content %}
+<!-- This code is taken from http://getbootstrap.com/examples/jumbotron/ -->
+    <div class="jumbotron">
+      <div class="container">
+        <h1>Register</h1>
+      </div>
+    </div>
+
+    <div class="container">
+      <!-- Example row of columns -->
+      <div class="row">
+        <div class="col-md-4">
+
+    <form action="{% url 'login' %}" method="POST" class="foundry-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.REQUEST.next }}" />
+        {{ form.as_p }}
+        <div class="buttons">
+            <input type="submit" value="{% trans "Log in" %}" />
+        </div>
+        <div class="foundry-menu auth-nav">
+            <div class="items">
+                <div class="item"><a href="{% url 'join' %}">{% trans "Not registered? Sign up here" %}</a></div>
+                {% comment %}
+                <div class="item"><a href="{% url password_reset %}">{% blocktrans %}I have forgotten my password?{% endblocktrans %}</a></div>
+                {% endcomment %}
+            </div>
+        </div>
+    </form>
+        </div>
+        </div>
+        </div>
+
+</div>
+{% endblock %}
