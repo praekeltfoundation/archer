@@ -8,10 +8,9 @@ class UserBackend(ModelBackend):
         if not username or not password:
             return
 
-        token = authenticate(username, password)
+        user_data = authenticate(username, password)
 
-        if token:
+        if user_data['user_id']:
             user, created = User.objects.get_or_create(username=username)
-            user.token = token
-
-        return user
+            user.token = user_data['user_id']
+            return user

@@ -8,13 +8,17 @@ from django.test.client import Client
 from django.contrib.auth.models import User
 from django.conf import settings
 
+from requests import models
+
 from app.api import register, InvalidResponse, authenticate
 
 
-class RequestsResponse:
-    def __init__(self, status_code=None, response=None):
+class RequestsResponse(models.Response):
+    def __init__(self, status_code=None, response=None, encoding='utf-8'):
+        super(RequestsResponse, self).__init__()
         self.status_code = status_code
-        self.text = response
+        self._content = response
+        self.encoding = encoding
 
 
 class ApiTestCase(TestCase):
@@ -72,25 +76,50 @@ class ApiTestCase(TestCase):
                 'password': 'invalid password'
             }))
 
-    @patch('requests.post')
-    @patch('requests.put')
-    def test_registration_view(self, mock_put, mock_post):
-        put_response = RequestsResponse()
-        put_response.status_code = 200
-        mock_put.return_value = put_response
+    def test_home_no_logout(self):
+        self.assertNotContains(Client().get('/'), 'Logout')
 
-        post_response = RequestsResponse()
-        post_response.status_code = 200
-        post_response.text = 'random-uuid-for-the-user'
-        mock_post.return_value = post_response
+    def test_join_page(self):
+        self.assertContains(
+            Client().get('/join/'), 'Enter the same password as above')
+
+    @patch('requests.put')
+    @patch('requests.post')
+    def test_registration(self, mock_put, mock_post):
+        uuid = uuid4().hex
+        mock_put.return_value = RequestsResponse(200, json.dumps({
+            'user_id': uuid,
+        }))
+        mock_post.return_value = RequestsResponse(200, json.dumps({
+            'user_id': uuid
+        }))
 
         client = Client()
 
-        resp = client.get('/')
-        self.assertNotContains(resp, 'Logout')
+        data = {
+            'username': 'joesoap',
+            'password1': '1234',
+            'password2': '1234',
+            'email': 'test@email.com',
+            'mobile_number': '27123456789',
+        }
 
-        resp = client.get('/join/')
-        self.assertContains(resp, 'Enter the same password as above')
+        resp = client.post('/join/', data)
+        self.assertEquals(resp.status_code, 302)
+        self.assertTrue(User.objects.filter(username='joesoap').exists())
+
+    @patch('requests.post')
+    @patch('requests.put')
+    def test_registration_view(self, mock_put, mock_post):
+        uuid = uuid4().hex
+        mock_put.return_value = RequestsResponse(200, json.dumps({
+            'user_id': uuid,
+        }))
+        mock_post.return_value = RequestsResponse(200, json.dumps({
+            'user_id': uuid,
+        }))
+
+        client = Client()
 
         data = {
             'username': 'joesoap',
@@ -107,17 +136,14 @@ class ApiTestCase(TestCase):
         self.assertContains(resp, 'Logout')
 
         #test api error result
-        put_response.status_code = 400
-        mock_put.return_value = put_response
+        mock_put.return_value = RequestsResponse(400)
         resp = client.post('/join/', data)
         self.assertEquals(resp.status_code, 200)
         self.assertContains(resp, 'A user with that username already exists.')
 
         #test auth error after register
-        put_response.status_code = 200
-        mock_put.return_value = put_response
-        post_response.status_code = 400
-        mock_post.return_value = post_response
+        mock_put.return_value = RequestsResponse(200)
+        mock_post.return_value = RequestsResponse(400)
 
         resp = client.post('/join/', data)
         self.assertEquals(resp.status_code, 200)
@@ -129,8 +155,7 @@ class ApiTestCase(TestCase):
         resp = client.get('/')
         self.assertNotContains(resp, 'Logout')
 
-        post_response.status_code = 200
-        mock_post.return_value = post_response
+        mock_post.return_value = RequestsResponse(200)
 
         data = {
             'username': 'joesoap',
