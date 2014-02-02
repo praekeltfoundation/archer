@@ -13,9 +13,9 @@ from requests import models
 from app.api import register, InvalidResponse, authenticate
 
 
-class RequestsResponse(models.Response):
+class MockResponse(models.Response):
     def __init__(self, status_code=None, response=None, encoding='utf-8'):
-        super(RequestsResponse, self).__init__()
+        super(MockResponse, self).__init__()
         self.status_code = status_code
         self._content = response
         self.encoding = encoding
@@ -33,7 +33,7 @@ class ApiTestCase(TestCase):
 
     @patch('requests.put')
     def test_registration_success(self, mock_put):
-        mock_put.return_value = RequestsResponse(200)
+        mock_put.return_value = MockResponse(200)
         response = register(self.user)
         self.assertEquals(response.status_code, 200)
         mock_put.assert_called_with(
@@ -41,7 +41,7 @@ class ApiTestCase(TestCase):
 
     @patch('requests.put')
     def test_registration_fail(self, mock_put):
-        mock_put.return_value = RequestsResponse(400)
+        mock_put.return_value = MockResponse(400)
         with self.assertRaises(InvalidResponse):
             register(self.user)
         mock_put.assert_called_with(
@@ -50,7 +50,7 @@ class ApiTestCase(TestCase):
     @patch('requests.post')
     def test_authentication_success(self, mock_post):
         uuid = uuid4()
-        mock_post.return_value = RequestsResponse(200, json.dumps({
+        mock_post.return_value = MockResponse(200, json.dumps({
             'user_id': uuid.hex,
         }))
 
@@ -66,7 +66,7 @@ class ApiTestCase(TestCase):
 
     @patch('requests.post')
     def test_authentication_fail(self, mock_post):
-        mock_post.return_value = RequestsResponse(400)
+        mock_post.return_value = MockResponse(400)
 
         with self.assertRaises(InvalidResponse):
             authenticate('joesoap', 'invalid password')
@@ -87,10 +87,10 @@ class ApiTestCase(TestCase):
     @patch('requests.post')
     def test_view_registration_success(self, mock_post, mock_put):
         uuid = uuid4().hex
-        mock_post.return_value = RequestsResponse(200, json.dumps({
+        mock_post.return_value = MockResponse(200, json.dumps({
             'user_id': uuid
         }))
-        mock_put.return_value = RequestsResponse(200, json.dumps({
+        mock_put.return_value = MockResponse(200, json.dumps({
             'user_id': uuid,
         }))
 
@@ -128,8 +128,8 @@ class ApiTestCase(TestCase):
     def test_view_registration_fail(self, mock_post, mock_put):
         uuid = uuid4().hex
         mock_put.result
-        mock_put.return_value = RequestsResponse(400)
-        mock_post.return_value = RequestsResponse(200, json.dumps({
+        mock_put.return_value = MockResponse(400)
+        mock_post.return_value = MockResponse(200, json.dumps({
             'user_id': uuid,
         }))
 
@@ -150,10 +150,10 @@ class ApiTestCase(TestCase):
     def test_view_registration_fail_after_auth(self, mock_post, mock_put):
         #test auth error after register
         uuid = uuid4().hex
-        mock_put.return_value = RequestsResponse(200, json.dumps({
+        mock_put.return_value = MockResponse(200, json.dumps({
             'user_id': uuid,
         }))
-        mock_post.return_value = RequestsResponse(400, json.dumps({
+        mock_post.return_value = MockResponse(400, json.dumps({
             'user_id': uuid,
         }))
 
@@ -176,7 +176,7 @@ class ApiTestCase(TestCase):
         resp = client.get('/')
         self.assertNotContains(resp, 'Logout')
 
-        mock_post.return_value = RequestsResponse(200, json.dumps({
+        mock_post.return_value = MockResponse(200, json.dumps({
             'user_id': uuid,
         }))
 
