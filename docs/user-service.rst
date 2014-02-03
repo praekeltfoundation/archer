@@ -1,6 +1,46 @@
 User Service
 ============
 
+.. http:get:: /users/
+
+    Search for an existing user node.
+
+    :query string username: the username (optional).
+    :query string msisdn: the MSISDN (optional).
+    :query string email_address: the email address (optional).
+
+
+    .. note::
+
+        All three query string parameters are optional but at least
+        one must be specified.
+
+
+    :resheader Content-Type: will always be `application/json`.
+    :status 200: as this query cannot fail, it may return an empty result.
+
+    .. sourcecode:: http
+
+        HTTP/1.1 200 OK
+        Vary: Accept
+        Content-Type: application/json
+
+        [
+            {
+                "user_id": "uuid1",
+                "username": "the username",
+                "msisdn": "27000000001",
+                "email_address": "email@domain2.com"
+            },
+            {
+                "user_id": "uuid2",
+                "username": "the username",
+                "msisdn": "27000000002",
+                "email_address": "email@domain2.com"
+            }
+        ]
+
+
 .. http:post:: /users/
 
     Create a new user node.
@@ -57,6 +97,8 @@ User Service
             "msisdn": "27000000000",
             "email_address": "email@domain.com"
         }
+
+
 
 .. http:delete:: /users/(uuid:user_id)/
 
