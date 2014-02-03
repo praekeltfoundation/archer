@@ -72,6 +72,7 @@ User Service
         Content-Type: application/json
 
         {
+            "user_id": "uuid",
             "username": "the username",
             "msisdn": "27000000000",
             "email_address": "email@domain.com"
@@ -93,6 +94,7 @@ User Service
         Content-Type: application/json
 
         {
+            "user_id": "uuid",
             "username": "the username",
             "msisdn": "27000000000",
             "email_address": "email@domain.com"
