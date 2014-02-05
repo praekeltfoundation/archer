@@ -9,8 +9,9 @@ Welcome to Archer's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
+   user-service.rst
 
 
 Indices and tables
