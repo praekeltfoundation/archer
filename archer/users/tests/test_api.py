@@ -17,7 +17,7 @@ DelayedCall.debug = True
 
 class TestUserServiceApp(TestCase):
 
-    timeout = 1
+    timeout = 5
 
     def setUp(self):
         self.patch(UserServiceApp, 'make_uuid', lambda _: 'uuid')
