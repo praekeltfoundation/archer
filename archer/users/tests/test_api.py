@@ -4,16 +4,20 @@ from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.trial.unittest import TestCase
 from twisted.web.server import Site
+from twisted.web import http
 
 import treq
 from treq._utils import get_global_pool
 
 from archer.users.api import UserServiceApp, NEO4J_URL, cypher_query
 
+from twisted.internet.base import DelayedCall
+DelayedCall.debug = True
+
 
 class TestUserServiceApp(TestCase):
 
-    timeout = 5
+    timeout = 1
 
     def setUp(self):
         self.patch(UserServiceApp, 'make_uuid', lambda _: 'uuid')
@@ -60,7 +64,7 @@ class TestUserServiceApp(TestCase):
             ['/users/uuid/'])
 
     @inlineCallbacks
-    def test_get_user_simple(self):
+    def test_get_user_200(self):
         payload = {
             'username': 'foo',
             'email_address': 'foo@bar.com',
@@ -74,3 +78,31 @@ class TestUserServiceApp(TestCase):
         expected_response['request_id'] = None
         expected_response['user_id'] = 'uuid'
         self.assertEqual(content, expected_response)
+
+    @inlineCallbacks
+    def test_get_user_404(self):
+        resp = yield treq.get(self.mk_url('uuid'))
+        content = json.loads((yield treq.content(resp)))
+        self.assertEqual(resp.code, http.NOT_FOUND)
+        self.assertEqual(content, {
+            'request_id': None
+        })
+
+    @inlineCallbacks
+    def test_delete_user_204(self):
+        payload = {
+            'username': 'foo',
+            'email_address': 'foo@bar.com',
+            'msisdn': '+27000000000',
+        }
+        yield self.mk_user(payload)
+
+        resp = yield treq.delete(self.mk_url('uuid'))
+        yield treq.content(resp)
+        self.assertEqual(resp.code, http.NO_CONTENT)
+
+    @inlineCallbacks
+    def test_delete_user_404(self):
+        resp = yield treq.delete(self.mk_url('uuid'))
+        yield treq.content(resp)
+        self.assertEqual(resp.code, http.NOT_FOUND)
