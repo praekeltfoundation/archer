@@ -87,7 +87,7 @@ class UserServiceApp(object):
     @inlineCallbacks
     def query_users(self, request):
         params = get_params(
-            request.args, ["username", "email_address", "msisdn"], ["request_id"])
+            request.args, ["username", "email_address", "msisdn"])
         props = dict([(key, values[0]) for key, values in params.items()])
         response = yield cypher_query(
             """
