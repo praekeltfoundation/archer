@@ -132,3 +132,16 @@ class TestUserServiceApp(TestCase):
         }
         expected_response.update(updated_payload)
         self.assertEqual(json.loads(content), expected_response)
+
+    @inlineCallbacks
+    def test_update_user_404(self):
+        updated_payload = {
+            'username': 'username',
+            'email_address': 'email@address.com',
+            'msisdn': '+27000000001',
+        }
+        resp = yield treq.put(self.mk_url('uuid'),
+                              data=json.dumps(updated_payload),
+                              allow_redirects=False)
+        yield treq.content(resp)
+        self.assertEqual(resp.code, http.NOT_FOUND)
