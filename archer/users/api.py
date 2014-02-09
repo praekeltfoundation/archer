@@ -82,6 +82,28 @@ class UserServiceApp(object):
         request.redirect('/users/%s/' % (uuid,))
         returnValue({})
 
+    @handler('/users/<string:user_id>/relationship/')
+    @inlineCallbacks
+    def create_relationship(self, request, user_id):
+        props = get_json_params(request, "user_id")
+        response = yield cypher_query(
+            """
+            MATCH (this:User),(other:User)
+            WHERE this.user_id = {this_user_id}
+                AND other.user_id = {other_user_id}
+            CREATE (this)-[r:{rel_type}]->(other)
+            RETURN r
+            """, {
+            "this_user_id": user_id,
+            "other_user_id": props["user_id"],
+            "rel_type": "like",
+        })
+        content = yield treq.content(response)
+        if not http_ok(response):
+            raise UserServiceError(content)
+        request.redirect('/users/%s/' % (user_id,))
+        returnValue({})
+
     @handler('/users/<string:user_id>/', methods=['GET'])
     @inlineCallbacks
     def get_user(self, request, user_id):
