@@ -4,11 +4,15 @@ from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.trial.unittest import TestCase
 from twisted.web.server import Site
+from twisted.web import http
 
 import treq
 from treq._utils import get_global_pool
 
 from archer.users.api import UserServiceApp, NEO4J_URL, cypher_query
+
+from twisted.internet.base import DelayedCall
+DelayedCall.debug = True
 
 
 class TestUserServiceApp(TestCase):
@@ -24,13 +28,25 @@ class TestUserServiceApp(TestCase):
         self.addCleanup(self.listener.loseConnection)
         self.addCleanup(self.clear_neo4j)
 
-    def mk_url(self, *paths):
+    def make_url(self, *paths):
         return 'http://localhost:%s/users/%s' % (
             self.listener_port, ('/'.join(paths) + '/' if paths else ''))
 
-    def mk_user(self, data):
-        return treq.post(self.mk_url(), data=json.dumps(data),
+    def create_user(self, data):
+        return treq.post(self.make_url(),
+                         data=json.dumps(data),
                          allow_redirects=False)
+
+    def update_user(self, uuid, data):
+        return treq.put(self.make_url(uuid),
+                        data=json.dumps(data),
+                        allow_redirects=False)
+
+    def get_user(self, uuid):
+        return treq.get(self.make_url(uuid))
+
+    def delete_user(self, uuid):
+        return treq.delete(self.make_url(uuid))
 
     @inlineCallbacks
     def clear_neo4j(self):
@@ -53,24 +69,87 @@ class TestUserServiceApp(TestCase):
             'email_address': 'foo@bar.com',
             'msisdn': '+27000000000',
         }
-        resp = yield self.mk_user(payload)
+        resp = yield self.create_user(payload)
         self.assertEqual(resp.code, 302)
         self.assertEqual(
             resp.headers.getRawHeaders('location'),
             ['/users/uuid/'])
 
     @inlineCallbacks
-    def test_get_user_simple(self):
+    def test_get_user_200(self):
         payload = {
             'username': 'foo',
             'email_address': 'foo@bar.com',
             'msisdn': '+27000000000',
         }
-        yield self.mk_user(payload)
+        yield self.create_user(payload)
 
-        resp = yield treq.get(self.mk_url('uuid'))
+        resp = yield self.get_user('uuid')
         content = json.loads((yield treq.content(resp)))
         expected_response = payload.copy()
         expected_response['request_id'] = None
         expected_response['user_id'] = 'uuid'
         self.assertEqual(content, expected_response)
+
+    @inlineCallbacks
+    def test_get_user_404(self):
+        resp = yield self.get_user('uuid')
+        content = json.loads((yield treq.content(resp)))
+        self.assertEqual(resp.code, http.NOT_FOUND)
+        self.assertEqual(content, {
+            'request_id': None
+        })
+
+    @inlineCallbacks
+    def test_delete_user_204(self):
+        payload = {
+            'username': 'foo',
+            'email_address': 'foo@bar.com',
+            'msisdn': '+27000000000',
+        }
+        yield self.create_user(payload)
+
+        resp = yield self.delete_user('uuid')
+        yield treq.content(resp)
+        self.assertEqual(resp.code, http.NO_CONTENT)
+
+    @inlineCallbacks
+    def test_delete_user_404(self):
+        resp = yield self.delete_user('uuid')
+        yield treq.content(resp)
+        self.assertEqual(resp.code, http.NOT_FOUND)
+
+    @inlineCallbacks
+    def test_update_user_200(self):
+        original_payload = {
+            'username': 'foo',
+            'email_address': 'foo@bar.com',
+            'msisdn': '+27000000000',
+        }
+        yield self.create_user(original_payload)
+
+        updated_payload = {
+            'username': 'username',
+            'email_address': 'email@address.com',
+            'msisdn': '+27000000001',
+        }
+        resp = yield self.update_user('uuid', updated_payload)
+        content = yield treq.content(resp)
+        self.assertEqual(resp.code, http.OK)
+        expected_response = {
+            'user_id': 'uuid',
+            'request_id': None,
+        }
+        expected_response.update(updated_payload)
+        self.assertEqual(json.loads(content), expected_response)
+
+    @inlineCallbacks
+    def test_update_user_404(self):
+        payload = {
+            'username': 'username',
+            'email_address': 'email@address.com',
+            'msisdn': '+27000000001',
+        }
+        resp = yield self.update_user('uuid', payload)
+        yield treq.content(resp)
+        self.assertEqual(resp.code, http.NOT_FOUND)
