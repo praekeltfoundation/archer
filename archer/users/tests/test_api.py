@@ -106,3 +106,29 @@ class TestUserServiceApp(TestCase):
         resp = yield treq.delete(self.mk_url('uuid'))
         yield treq.content(resp)
         self.assertEqual(resp.code, http.NOT_FOUND)
+
+    @inlineCallbacks
+    def test_update_user_200(self):
+        original_payload = {
+            'username': 'foo',
+            'email_address': 'foo@bar.com',
+            'msisdn': '+27000000000',
+        }
+        yield self.mk_user(original_payload)
+
+        updated_payload = {
+            'username': 'username',
+            'email_address': 'email@address.com',
+            'msisdn': '+27000000001',
+        }
+        resp = yield treq.put(self.mk_url('uuid'),
+                              data=json.dumps(updated_payload),
+                              allow_redirects=False)
+        content = yield treq.content(resp)
+        self.assertEqual(resp.code, http.OK)
+        expected_response = {
+            'user_id': 'uuid',
+            'request_id': None,
+        }
+        expected_response.update(updated_payload)
+        self.assertEqual(json.loads(content), expected_response)
