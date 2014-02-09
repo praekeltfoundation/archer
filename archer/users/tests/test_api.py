@@ -1,4 +1,5 @@
 import json
+import urllib
 
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue
@@ -48,6 +49,10 @@ class TestUserServiceApp(TestCase):
     def delete_user(self, uuid):
         return treq.delete(self.make_url(uuid))
 
+    def query_user(self, **kwargs):
+        url = '%s?%s' % (self.make_url(), urllib.urlencode(kwargs))
+        return treq.get(url)
+
     @inlineCallbacks
     def clear_neo4j(self):
         clear_command = """
@@ -74,6 +79,27 @@ class TestUserServiceApp(TestCase):
         self.assertEqual(
             resp.headers.getRawHeaders('location'),
             ['/users/uuid/'])
+
+    @inlineCallbacks
+    def test_user_query(self):
+        payload = {
+            'username': 'foo',
+            'email_address': 'foo@bar.com',
+            'msisdn': '+27000000000',
+        }
+        yield self.create_user(payload)
+        resp = yield self.query_user(
+            username='foo', email_address='foo@bar.com',
+            msisdn='+27000000000')
+        content = json.loads((yield treq.content(resp)))
+        self.assertEqual(
+            content["matches"],
+            [{
+                'username': 'foo',
+                'email_address': 'foo@bar.com',
+                'msisdn': '+27000000000',
+                'user_id': 'uuid',
+            }])
 
     @inlineCallbacks
     def test_get_user_200(self):

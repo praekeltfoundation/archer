@@ -8,7 +8,8 @@ from twisted.web import http
 
 import treq
 
-from aludel.service import service, handler, get_json_params, APIError
+from aludel.service import (
+    service, handler, get_json_params, APIError, get_params)
 
 NEO4J_TIMEOUT = 10
 NEO4J_URL = 'http://localhost:7474'
@@ -81,6 +82,23 @@ class UserServiceApp(object):
 
         request.redirect('/users/%s/' % (uuid,))
         returnValue({})
+
+    @handler('/users/', methods=['GET'])
+    @inlineCallbacks
+    def query_users(self, request):
+        params = get_params(
+            request.args, ["username", "email_address", "msisdn"], ["request_id"])
+        props = dict([(key, values[0]) for key, values in params.items()])
+        response = yield cypher_query(
+            """
+            MATCH (n:User)
+            WHERE n.username = { username }
+                AND n.email_address = { email_address }
+                AND n.msisdn = { msisdn }
+            RETURN n
+            """, props)
+        content = json.loads((yield treq.content(response)))
+        returnValue({"matches": [d[0]["data"] for d in content['data']]})
 
     @handler('/users/<string:user_id>/relationship/')
     @inlineCallbacks
