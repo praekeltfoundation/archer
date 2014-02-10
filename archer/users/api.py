@@ -45,10 +45,7 @@ def get_node_data(json_payload):
 
 
 class UserServiceError(APIError):
-
-    def __init__(self, db_response):
-        super(UserServiceError, self).__init__(
-            message='DB returned: %s' % (db_response.code,))
+    pass
 
 
 @service
@@ -76,9 +73,9 @@ class UserServiceApp(object):
             })
         # TODO: Figure out why the content needs to be read.
         #       Something in treq blocks on this.
-        yield treq.content(response)
+        content = yield treq.content(response)
         if not http_ok(response):
-            raise UserServiceError(response)
+            raise UserServiceError(content)
 
         request.redirect('/users/%s/' % (uuid,))
         returnValue({})
@@ -87,16 +84,21 @@ class UserServiceApp(object):
     @inlineCallbacks
     def query_users(self, request):
         params = get_params(
-            request.args, ["username", "email_address", "msisdn"])
+            request.args, [], ["username", "email_address", "msisdn"])
+        if not params:
+            raise UserServiceError(
+                'Must provide at least of username, email_address or msisdn.',
+                code=http.BAD_REQUEST)
+
         props = dict([(key, values[0]) for key, values in params.items()])
+        search_query = " AND ".join(["n.%s = { %s }" % (key, key)
+                                     for key in props])
         response = yield cypher_query(
             """
             MATCH (n:User)
-            WHERE n.username = { username }
-                AND n.email_address = { email_address }
-                AND n.msisdn = { msisdn }
+            WHERE %s
             RETURN n
-            """, props)
+            """ % (search_query,), props)
         content = json.loads((yield treq.content(response)))
         returnValue({"matches": [d[0]["data"] for d in content['data']]})
 
@@ -155,7 +157,7 @@ class UserServiceApp(object):
 
         content = yield treq.content(response)
         if not http_ok(response):
-            raise UserServiceError(response)
+            raise UserServiceError(content)
 
         response = json.loads(content)
         count = get_neo4j_data(response)
@@ -178,7 +180,7 @@ class UserServiceApp(object):
             })
         content = yield treq.content(response)
         if not http_ok(response):
-            raise UserServiceError(response)
+            raise UserServiceError(content)
 
         response = json.loads(content)
         count = get_neo4j_data(response)

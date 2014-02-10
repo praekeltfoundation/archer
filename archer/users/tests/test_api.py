@@ -81,7 +81,7 @@ class TestUserServiceApp(TestCase):
             ['/users/uuid/'])
 
     @inlineCallbacks
-    def test_user_query(self):
+    def test_user_query_all_params(self):
         payload = {
             'username': 'foo',
             'email_address': 'foo@bar.com',
@@ -100,6 +100,30 @@ class TestUserServiceApp(TestCase):
                 'msisdn': '+27000000000',
                 'user_id': 'uuid',
             }])
+
+        @inlineCallbacks
+        def test_user_query_part_params(self):
+            payload = {
+                'username': 'foo',
+                'email_address': 'foo@bar.com',
+                'msisdn': '+27000000000',
+            }
+            yield self.create_user(payload)
+            resp = yield self.query_user(username='foo')
+            content = json.loads((yield treq.content(resp)))
+            self.assertEqual(
+                content["matches"],
+                [{
+                    'username': 'foo',
+                    'email_address': 'foo@bar.com',
+                    'msisdn': '+27000000000',
+                    'user_id': 'uuid',
+                }])
+
+    @inlineCallbacks
+    def test_user_query_no_params(self):
+        resp = yield self.query_user()  # NOTE: no params
+        self.assertEqual(resp.code, http.BAD_REQUEST)
 
     @inlineCallbacks
     def test_get_user_200(self):
