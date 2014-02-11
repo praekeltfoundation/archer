@@ -14,7 +14,7 @@ NEO4J_TIMEOUT = 10
 NEO4J_URL = 'http://localhost:7474'
 
 
-def cypher_query(query, params=None):
+def cypher_query(query, params=None, pool=None):
     params = params or {}
     data = json.dumps({
         "query": query,
@@ -23,7 +23,7 @@ def cypher_query(query, params=None):
     return treq.post(NEO4J_URL + '/db/data/cypher', data, headers={
         'Accept': ['application/json; charset=UTF-8'],
         'Content-Type': ['application/json'],
-    }, timeout=NEO4J_TIMEOUT)
+    }, timeout=NEO4J_TIMEOUT, pool=pool)
 
 
 def http_ok(response):
@@ -53,8 +53,8 @@ class UserServiceError(APIError):
 @service
 class UserServiceApp(object):
 
-    def __init__(self, conn_str, reactor):
-        pass
+    def __init__(self, conn_str, reactor, pool):
+        self.pool = pool
 
     def make_uuid(self):
         return uuid4().hex
@@ -72,7 +72,7 @@ class UserServiceApp(object):
         response = yield cypher_query(
             "CREATE (n:User { props }) RETURN n", {
                 "props": props
-            })
+            }, pool=self.pool)
         # TODO: Figure out why the content needs to be read.
         #       Something in treq blocks on this.
         yield treq.content(response)
@@ -85,19 +85,27 @@ class UserServiceApp(object):
     @handler('/users/<string:user_id>/relationship/')
     @inlineCallbacks
     def create_relationship(self, request, user_id):
-        props = get_json_params(request, "user_id")
+        props = get_json_params(
+            request, 'user_id', 'relationship_type', 'relationship_props')
+        relationship_type = props['relationship_type']
+        relationship_props = props['relationship_props']
+        if relationship_type not in ['like']:
+            raise UserServiceError(
+                'Unsupported relationship type: %r' % (relationship_type,))
+
         response = yield cypher_query(
             """
             MATCH (this:User),(other:User)
             WHERE this.user_id = {this_user_id}
                 AND other.user_id = {other_user_id}
-            CREATE (this)-[r:{rel_type}]->(other)
-            RETURN r
+            CREATE (this)-[r:{relationship_type} {relationship_props}]->(other)
+            RETURN this,r
             """, {
-            "this_user_id": user_id,
-            "other_user_id": props["user_id"],
-            "rel_type": "like",
-        })
+            'this_user_id': user_id,
+            'other_user_id': props['user_id'],
+            'relationship_type': relationship_type,
+            'relationship_props': relationship_props,
+        }, pool=self.pool)
         content = yield treq.content(response)
         if not http_ok(response):
             raise UserServiceError(content)
@@ -110,7 +118,7 @@ class UserServiceApp(object):
         response = yield cypher_query(
             "MATCH (n:User {user_id: {user_id}}) RETURN n", {
                 "user_id": user_id,
-            })
+            }, pool=self.pool)
         content = json.loads((yield treq.content(response)))
         if has_node_data(content):
             returnValue(get_node_data(content))
@@ -133,7 +141,7 @@ class UserServiceApp(object):
             "RETURN count(n) as COUNT", {
                 "user_id": user_id,
                 "props": props,
-            })
+            }, pool=self.pool)
 
         content = yield treq.content(response)
         if not http_ok(response):
@@ -157,7 +165,7 @@ class UserServiceApp(object):
             "DELETE n,r "
             "RETURN count(n) AS COUNT", {
                 "user_id": user_id,
-            })
+            }, pool=self.pool)
         content = yield treq.content(response)
         if not http_ok(response):
             raise UserServiceError(response)
