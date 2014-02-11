@@ -10,20 +10,21 @@ import treq
 
 from aludel.service import service, handler, get_json_params, APIError
 
-NEO4J_TIMEOUT = 10
-NEO4J_URL = 'http://localhost:7474'
+DEFAULT_NEO4J_TIMEOUT = 10
+DEFAULT_NEO4J_URL = 'http://localhost:7474'
 
 
-def cypher_query(query, params=None, pool=None):
+def cypher_query(query, params=None, pool=None,
+                 timeout=DEFAULT_NEO4J_TIMEOUT, url=DEFAULT_NEO4J_URL):
     params = params or {}
     data = json.dumps({
         "query": query,
         "params": params,
     })
-    return treq.post(NEO4J_URL + '/db/data/cypher', data, headers={
+    return treq.post(url + '/db/data/cypher', data, headers={
         'Accept': ['application/json; charset=UTF-8'],
         'Content-Type': ['application/json'],
-    }, timeout=NEO4J_TIMEOUT, pool=pool)
+    }, timeout=timeout, pool=pool)
 
 
 def http_ok(response):
@@ -51,10 +52,15 @@ class UserServiceError(APIError):
 class UserServiceApp(object):
 
     def __init__(self, conn_str, reactor, pool):
+        self.conn_str = conn_str
         self.pool = pool
 
     def make_uuid(self):
         return uuid4().hex
+
+    def cypher_query(self, query, params):
+        return cypher_query(
+            query, params=params, pool=self.pool, url=self.conn_str)
 
     @handler('/users/', methods=['POST'])
     @inlineCallbacks
@@ -66,10 +72,10 @@ class UserServiceApp(object):
             'user_id': uuid,
         })
 
-        response = yield cypher_query(
+        response = yield self.cypher_query(
             "CREATE (n:User { props }) RETURN n", {
                 "props": props
-            }, pool=self.pool)
+            })
         # TODO: Figure out why the content needs to be read.
         #       Something in treq blocks on this.
         content = yield treq.content(response)
@@ -86,23 +92,22 @@ class UserServiceApp(object):
             request, ['user_id', 'relationship_type', 'relationship_props'])
         relationship_type = props['relationship_type']
         relationship_props = props['relationship_props']
-        if relationship_type not in ['like']:
+        if relationship_type not in ['LIKE']:
             raise UserServiceError(
                 'Unsupported relationship type: %r' % (relationship_type,))
 
-        response = yield cypher_query(
+        response = yield self.cypher_query(
             """
             MATCH (this:User),(other:User)
             WHERE this.user_id = {this_user_id}
                 AND other.user_id = {other_user_id}
-            CREATE (this)-[r:LIKE]->(other)
+            CREATE (this)-[r:%s {relationship_props}]->(other)
             RETURN r
-            """, {
+            """ % (relationship_type,), {
             'this_user_id': user_id,
             'other_user_id': props['user_id'],
-            'relationship_type': relationship_type,
             'relationship_props': relationship_props,
-        }, pool=self.pool)
+        })
         content = yield treq.content(response)
         if not http_ok(response):
             raise UserServiceError(content)
@@ -112,10 +117,10 @@ class UserServiceApp(object):
     @handler('/users/<string:user_id>/', methods=['GET'])
     @inlineCallbacks
     def get_user(self, request, user_id):
-        response = yield cypher_query(
+        response = yield self.cypher_query(
             "MATCH (n:User {user_id: {user_id}}) RETURN n", {
                 "user_id": user_id,
-            }, pool=self.pool)
+            })
         content = json.loads((yield treq.content(response)))
         if has_node_data(content):
             returnValue(get_node_data(content))
@@ -132,13 +137,13 @@ class UserServiceApp(object):
             'user_id': user_id
         })
 
-        response = yield cypher_query(
+        response = yield self.cypher_query(
             "MATCH (n:User {user_id: {user_id}}) "
             "SET n = {props} "
             "RETURN count(n) as COUNT", {
                 "user_id": user_id,
                 "props": props,
-            }, pool=self.pool)
+            })
 
         content = yield treq.content(response)
         if not http_ok(response):
@@ -156,13 +161,13 @@ class UserServiceApp(object):
     @handler('/users/<string:user_id>/', methods=['DELETE'])
     @inlineCallbacks
     def delete_user(self, request, user_id):
-        response = yield cypher_query(
+        response = yield self.cypher_query(
             "MATCH (n:User {user_id: {user_id}}) "
             "OPTIONAL MATCH (n)-[r]-() "
             "DELETE n,r "
             "RETURN count(n) AS COUNT", {
                 "user_id": user_id,
-            }, pool=self.pool)
+            })
         content = yield treq.content(response)
         if not http_ok(response):
             raise UserServiceError(response)

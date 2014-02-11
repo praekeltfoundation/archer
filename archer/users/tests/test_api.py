@@ -8,9 +8,8 @@ from twisted.web.server import Site
 from twisted.web import http
 
 import treq
-from treq._utils import get_global_pool
 
-from archer.users.api import UserServiceApp, NEO4J_URL, cypher_query
+from archer.users.api import UserServiceApp, DEFAULT_NEO4J_URL, cypher_query
 
 from twisted.internet.base import DelayedCall
 DelayedCall.debug = True
@@ -23,7 +22,7 @@ class TestUserServiceApp(TestCase):
     def setUp(self):
         self.pool = HTTPConnectionPool(reactor, persistent=False)
         self.user_service = UserServiceApp(
-            NEO4J_URL, reactor=reactor, pool=self.pool)
+            DEFAULT_NEO4J_URL, reactor=reactor, pool=self.pool)
         site = Site(self.user_service.app.resource())
         self.listener = reactor.listenTCP(0, site, interface='localhost')
         self.listener_port = self.listener.getHost().port
@@ -184,8 +183,7 @@ class TestUserServiceApp(TestCase):
         }
         user1 = yield self.make_user(payload)
         user2 = yield self.make_user(payload)
-        resp = yield self.create_relationship(user1, user2, 'like')
+        resp = yield self.create_relationship(user1, user2, 'LIKE')
         self.assertEqual(resp.code, http.FOUND)
         [location] = resp.headers.getRawHeaders('location')
         self.assertEqual(location, '/users/%s/' % (user1['user_id'],))
-
