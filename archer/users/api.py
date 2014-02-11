@@ -44,10 +44,7 @@ def get_node_data(json_payload):
 
 
 class UserServiceError(APIError):
-
-    def __init__(self, db_response):
-        super(UserServiceError, self).__init__(
-            message='DB returned: %s' % (db_response.code,))
+    pass
 
 
 @service
@@ -75,9 +72,9 @@ class UserServiceApp(object):
             }, pool=self.pool)
         # TODO: Figure out why the content needs to be read.
         #       Something in treq blocks on this.
-        yield treq.content(response)
+        content = yield treq.content(response)
         if not http_ok(response):
-            raise UserServiceError(response)
+            raise UserServiceError(content)
 
         request.redirect('/users/%s/' % (uuid,))
         returnValue({})
@@ -86,7 +83,7 @@ class UserServiceApp(object):
     @inlineCallbacks
     def create_relationship(self, request, user_id):
         props = get_json_params(
-            request, 'user_id', 'relationship_type', 'relationship_props')
+            request, ['user_id', 'relationship_type', 'relationship_props'])
         relationship_type = props['relationship_type']
         relationship_props = props['relationship_props']
         if relationship_type not in ['like']:
@@ -98,8 +95,8 @@ class UserServiceApp(object):
             MATCH (this:User),(other:User)
             WHERE this.user_id = {this_user_id}
                 AND other.user_id = {other_user_id}
-            CREATE (this)-[r:{relationship_type} {relationship_props}]->(other)
-            RETURN this,r
+            CREATE (this)-[r:LIKE]->(other)
+            RETURN r
             """, {
             'this_user_id': user_id,
             'other_user_id': props['user_id'],
@@ -109,7 +106,7 @@ class UserServiceApp(object):
         content = yield treq.content(response)
         if not http_ok(response):
             raise UserServiceError(content)
-        request.redirect('/users/%s/' % (user_id,))
+        request.redirect(str('/users/%s/' % (user_id,)))
         returnValue({})
 
     @handler('/users/<string:user_id>/', methods=['GET'])

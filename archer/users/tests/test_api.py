@@ -65,6 +65,16 @@ class TestUserServiceApp(TestCase):
     def delete_user(self, uuid):
         return treq.delete(self.make_url(uuid), pool=self.pool)
 
+    def create_relationship(self, user1, user2, rel_type, rel_props=None):
+        return treq.put(
+            self.make_url(user1['user_id'], 'relationship'),
+            data=json.dumps({
+                'user_id': user2['user_id'],
+                'relationship_type': rel_type,
+                'relationship_props': rel_props or {},
+            }),
+            allow_redirects=False, pool=self.pool)
+
     @inlineCallbacks
     def clear_neo4j(self):
         clear_command = """
@@ -165,9 +175,17 @@ class TestUserServiceApp(TestCase):
         yield treq.content(resp)
         self.assertEqual(resp.code, http.NOT_FOUND)
 
-    # @inlineCallbacks
-    # def test_create_relationship(self):
-    #     payload = {
-    #         'username': 'username',
-    #         'username':
-    #     }
+    @inlineCallbacks
+    def test_create_relationship(self):
+        payload = {
+            'username': 'foo',
+            'email_address': 'foo@bar.com',
+            'msisdn': '+27000000000',
+        }
+        user1 = yield self.make_user(payload)
+        user2 = yield self.make_user(payload)
+        resp = yield self.create_relationship(user1, user2, 'like')
+        self.assertEqual(resp.code, http.FOUND)
+        [location] = resp.headers.getRawHeaders('location')
+        self.assertEqual(location, '/users/%s/' % (user1['user_id'],))
+
