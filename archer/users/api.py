@@ -86,7 +86,7 @@ class UserServiceApp(object):
     @inlineCallbacks
     def get_user(self, request, user_id):
         response = yield cypher_query(
-            "MATCH (n:User {user_id: {user_id}}) return n", {
+            "MATCH (n:User {user_id: {user_id}}) RETURN n", {
                 "user_id": user_id,
             })
         content = json.loads((yield treq.content(response)))
@@ -95,6 +95,36 @@ class UserServiceApp(object):
 
         request.setResponseCode(http.NOT_FOUND)
         returnValue({})
+
+    @handler('/users/<string:user_id>/', methods=['PUT'])
+    @inlineCallbacks
+    def update_user(self, request, user_id):
+        props = get_json_params(
+            request, ["username", "email_address", "msisdn"])
+        props.update({
+            'user_id': user_id
+        })
+
+        response = yield cypher_query(
+            "MATCH (n:User {user_id: {user_id}}) "
+            "SET n = {props} "
+            "RETURN count(n) as COUNT", {
+                "user_id": user_id,
+                "props": props,
+            })
+
+        content = yield treq.content(response)
+        if not http_ok(response):
+            raise UserServiceError(response)
+
+        response = json.loads(content)
+        count = get_neo4j_data(response)
+        if count == 0:
+            request.setResponseCode(http.NOT_FOUND)
+            returnValue({})
+
+        request.setResponseCode(http.OK)
+        returnValue(props)
 
     @handler('/users/<string:user_id>/', methods=['DELETE'])
     @inlineCallbacks
