@@ -92,6 +92,28 @@ class UserServiceApp(object):
         request.redirect('/users/%s/' % (uuid,))
         returnValue({})
 
+    @handler('/users/', methods=['GET'])
+    @inlineCallbacks
+    def query_users(self, request):
+        params = get_params(
+            request.args, [], ["username", "email_address", "msisdn"])
+        if not params:
+            raise UserServiceError(
+                'Must provide at least a username, email_address or msisdn.',
+                code=http.BAD_REQUEST)
+
+        props = dict([(key, values[0]) for key, values in params.items()])
+        search_query = " AND ".join(["n.%s = { %s }" % (key, key)
+                                     for key in props])
+        response = yield self.cypher_query(
+            """
+            MATCH (n:User)
+            WHERE %s
+            RETURN n
+            """ % (search_query,), props)
+        content = yield treq.json_content(response)
+        returnValue({"matches": [d[0]["data"] for d in content['data']]})
+
     @handler('/users/<string:user_id>/relationship/<string:other_user_id>/',
              methods=['PUT'])
     @inlineCallbacks
@@ -180,7 +202,7 @@ class UserServiceApp(object):
 
         content = yield treq.content(response)
         if not http_ok(response):
-            raise UserServiceError(response)
+            raise UserServiceError(content)
 
         response = json.loads(content)
         count = get_neo4j_data(response)
@@ -203,7 +225,7 @@ class UserServiceApp(object):
             })
         content = yield treq.content(response)
         if not http_ok(response):
-            raise UserServiceError(response)
+            raise UserServiceError(content)
 
         response = json.loads(content)
         count = get_neo4j_data(response)

@@ -80,6 +80,10 @@ class TestUserServiceApp(TestCase):
             urllib.urlencode(params))
         return treq.get(url, allow_redirects=False, pool=self.pool)
 
+    def query_user(self, **kwargs):
+        url = '%s?%s' % (self.make_url(), urllib.urlencode(kwargs))
+        return treq.get(url, pool=self.pool)
+
     @inlineCallbacks
     def clear_neo4j(self):
         clear_command = """
@@ -102,6 +106,51 @@ class TestUserServiceApp(TestCase):
         self.assertEqual(resp.code, 302)
         [location] = resp.headers.getRawHeaders('location')
         self.assertTrue(location.startswith('/users/'))
+
+    @inlineCallbacks
+    def test_user_query_all_params(self):
+        payload = {
+            'username': 'foo',
+            'email_address': 'foo@bar.com',
+            'msisdn': '+27000000000',
+        }
+        user = yield self.make_user(payload)
+        resp = yield self.query_user(
+            username='foo', email_address='foo@bar.com',
+            msisdn='+27000000000')
+        content = json.loads((yield treq.content(resp)))
+        self.assertEqual(
+            content["matches"],
+            [{
+                'username': 'foo',
+                'email_address': 'foo@bar.com',
+                'msisdn': '+27000000000',
+                'user_id': user['user_id'],
+            }])
+
+    @inlineCallbacks
+    def test_user_query_part_params(self):
+        payload = {
+            'username': 'foo',
+            'email_address': 'foo@bar.com',
+            'msisdn': '+27000000000',
+        }
+        user = yield self.make_user(payload)
+        resp = yield self.query_user(username='foo')
+        content = json.loads((yield treq.content(resp)))
+        self.assertEqual(
+            content["matches"],
+            [{
+                'username': 'foo',
+                'email_address': 'foo@bar.com',
+                'msisdn': '+27000000000',
+                'user_id': user['user_id'],
+            }])
+
+    @inlineCallbacks
+    def test_user_query_no_params(self):
+        resp = yield self.query_user()  # NOTE: no params
+        self.assertEqual(resp.code, http.BAD_REQUEST)
 
     @inlineCallbacks
     def test_get_user_200(self):
