@@ -1,7 +1,7 @@
 User Service
 ============
 
-A simple rest based service, backed by Neo4J, to store information on
+A simple rest based service, backed by Neo4J_, to store information on
 users and relationships between them.
 
 Installation
@@ -133,3 +133,6 @@ API
         HTTP/1.1 204 No Content
         Vary: Accept
 
+
+
+.. _Neo4J: http://www.neo4j.org
