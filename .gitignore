@@ -10,3 +10,4 @@ twistd.pid
 .coverage
 /docs/_build/
 twistd.log
+.DS_Store

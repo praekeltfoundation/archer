@@ -1,6 +1,25 @@
 User Service
 ============
 
+A simple rest based service, backed by Neo4J_, to store information on
+users and relationships between them.
+
+Installation
+~~~~~~~~~~~~
+
+::
+
+    $ virtualenv ve
+    $ source ve/bin/activate
+    (ve)$ pip install -e .
+    (ve)$ twistd -n user-service \
+            --endpoint=tcp:8081 \
+            --database-connection-string=http://localhost:7474
+
+
+API
+~~~
+
 .. http:get:: /users/
 
     Search for an existing user node.
@@ -114,3 +133,6 @@ User Service
         HTTP/1.1 204 No Content
         Vary: Accept
 
+
+
+.. _Neo4J: http://www.neo4j.org
