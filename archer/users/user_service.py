@@ -27,6 +27,6 @@ class Options(usage.Options):
 
 def makeService(options):
     app = UserServiceApp(
-        options['database-connection-string'], reactor=reactor)
+        options['database-connection-string'], reactor=reactor, pool=None)
     site = server.Site(app.app.resource())
     return strports.service(options['endpoint'], site)

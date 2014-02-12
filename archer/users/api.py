@@ -11,20 +11,21 @@ import treq
 from aludel.service import (
     service, handler, get_json_params, APIError, get_params)
 
-NEO4J_TIMEOUT = 10
-NEO4J_URL = 'http://localhost:7474'
+DEFAULT_NEO4J_TIMEOUT = 10
+DEFAULT_NEO4J_URL = 'http://localhost:7474'
 
 
-def cypher_query(query, params=None):
+def cypher_query(query, params=None, pool=None,
+                 timeout=DEFAULT_NEO4J_TIMEOUT, url=DEFAULT_NEO4J_URL):
     params = params or {}
     data = json.dumps({
         "query": query,
         "params": params,
     })
-    return treq.post(NEO4J_URL + '/db/data/cypher', data, headers={
+    return treq.post(url + '/db/data/cypher', data, headers={
         'Accept': ['application/json; charset=UTF-8'],
         'Content-Type': ['application/json'],
-    }, timeout=NEO4J_TIMEOUT)
+    }, timeout=timeout, pool=pool)
 
 
 def http_ok(response):
@@ -44,6 +45,12 @@ def get_node_data(json_payload):
     return neo4j_data['data']
 
 
+def get_relation_data(json_payload):
+    neo4j_data = get_neo4j_data(json_payload)
+    return dict([(key, neo4j_data.get(key)) for key in
+                 ['type', 'data']])
+
+
 class UserServiceError(APIError):
     pass
 
@@ -51,11 +58,16 @@ class UserServiceError(APIError):
 @service
 class UserServiceApp(object):
 
-    def __init__(self, conn_str, reactor):
-        pass
+    def __init__(self, conn_str, reactor, pool):
+        self.conn_str = conn_str
+        self.pool = pool
 
     def make_uuid(self):
         return uuid4().hex
+
+    def cypher_query(self, query, params={}):
+        return cypher_query(
+            query, params=params, pool=self.pool, url=self.conn_str)
 
     @handler('/users/', methods=['POST'])
     @inlineCallbacks
@@ -67,7 +79,7 @@ class UserServiceApp(object):
             'user_id': uuid,
         })
 
-        response = yield cypher_query(
+        response = yield self.cypher_query(
             "CREATE (n:User { props }) RETURN n", {
                 "props": props
             })
@@ -93,41 +105,74 @@ class UserServiceApp(object):
         props = dict([(key, values[0]) for key, values in params.items()])
         search_query = " AND ".join(["n.%s = { %s }" % (key, key)
                                      for key in props])
-        response = yield cypher_query(
+        response = yield self.cypher_query(
             """
             MATCH (n:User)
             WHERE %s
             RETURN n
             """ % (search_query,), props)
-        content = json.loads((yield treq.content(response)))
+        content = yield treq.json_content(response)
         returnValue({"matches": [d[0]["data"] for d in content['data']]})
 
-    @handler('/users/<string:user_id>/relationship/')
+    @handler('/users/<string:user_id>/relationship/<string:other_user_id>/',
+             methods=['PUT'])
     @inlineCallbacks
-    def create_relationship(self, request, user_id):
-        props = get_json_params(request, "user_id")
-        response = yield cypher_query(
+    def create_relationship(self, request, user_id, other_user_id):
+        props = get_json_params(
+            request, ['relationship_type', 'relationship_props'])
+        relationship_type = props['relationship_type']
+        relationship_props = props['relationship_props']
+        if relationship_type not in ['LIKE']:
+            raise UserServiceError(
+                'Unsupported relationship type: %r' % (relationship_type,))
+
+        response = yield self.cypher_query(
             """
             MATCH (this:User),(other:User)
             WHERE this.user_id = {this_user_id}
                 AND other.user_id = {other_user_id}
-            CREATE (this)-[r:{rel_type}]->(other)
+            CREATE (this)-[r:%s {relationship_props}]->(other)
             RETURN r
-            """, {
-            "this_user_id": user_id,
-            "other_user_id": props["user_id"],
-            "rel_type": "like",
+            """ % (relationship_type,), {
+            'this_user_id': user_id,
+            'other_user_id': other_user_id,
+            'relationship_props': relationship_props,
         })
         content = yield treq.content(response)
         if not http_ok(response):
             raise UserServiceError(content)
-        request.redirect('/users/%s/' % (user_id,))
+        request.redirect(
+            str('/users/%s/relationship/%s/' % (user_id, other_user_id)))
+        returnValue({})
+
+    @handler('/users/<string:user_id>/relationship/<string:other_user_id>/',
+             methods=['GET'])
+    @inlineCallbacks
+    def get_relationship(self, request, user_id, other_user_id):
+        response = yield self.cypher_query(
+            """
+            MATCH (this:User)-[r]->(other:User)
+            WHERE this.user_id = {this_user_id}
+                AND other.user_id = {other_user_id}
+            RETURN r
+            """, {
+            'this_user_id': user_id,
+            'other_user_id': other_user_id,
+        })
+        content = yield treq.json_content(response)
+        if not http_ok(response):
+            raise UserServiceError(content)
+
+        if has_node_data(content):
+            returnValue(get_relation_data(content))
+
+        request.setResponseCode(http.NOT_FOUND)
         returnValue({})
 
     @handler('/users/<string:user_id>/', methods=['GET'])
     @inlineCallbacks
     def get_user(self, request, user_id):
-        response = yield cypher_query(
+        response = yield self.cypher_query(
             "MATCH (n:User {user_id: {user_id}}) RETURN n", {
                 "user_id": user_id,
             })
@@ -147,7 +192,7 @@ class UserServiceApp(object):
             'user_id': user_id
         })
 
-        response = yield cypher_query(
+        response = yield self.cypher_query(
             "MATCH (n:User {user_id: {user_id}}) "
             "SET n = {props} "
             "RETURN count(n) as COUNT", {
@@ -171,7 +216,7 @@ class UserServiceApp(object):
     @handler('/users/<string:user_id>/', methods=['DELETE'])
     @inlineCallbacks
     def delete_user(self, request, user_id):
-        response = yield cypher_query(
+        response = yield self.cypher_query(
             "MATCH (n:User {user_id: {user_id}}) "
             "OPTIONAL MATCH (n)-[r]-() "
             "DELETE n,r "
