@@ -99,7 +99,7 @@ class UserServiceApp(object):
             request.args, [], ["username", "email_address", "msisdn"])
         if not params:
             raise UserServiceError(
-                'Must provide at least of username, email_address or msisdn.',
+                'Must provide at least a username, email_address or msisdn.',
                 code=http.BAD_REQUEST)
 
         props = dict([(key, values[0]) for key, values in params.items()])
