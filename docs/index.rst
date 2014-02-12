@@ -11,7 +11,8 @@ Contents:
 .. toctree::
    :maxdepth: 1
 
-   user-service.rst
+   user-service/users.rst
+   user-service/relationships.rst
 
 
 Indices and tables
