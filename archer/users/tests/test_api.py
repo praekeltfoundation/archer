@@ -1,4 +1,5 @@
 import json
+import urllib
 
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks, returnValue
@@ -66,13 +67,18 @@ class TestUserServiceApp(TestCase):
 
     def create_relationship(self, user1, user2, rel_type, rel_props=None):
         return treq.put(
-            self.make_url(user1['user_id'], 'relationship'),
+            self.make_url(user1['user_id'], 'relationship', user2['user_id']),
             data=json.dumps({
-                'user_id': user2['user_id'],
                 'relationship_type': rel_type,
                 'relationship_props': rel_props or {},
             }),
             allow_redirects=False, pool=self.pool)
+
+    def get_relationship(self, user1, user2, params={}):
+        url = '%s?%s' % (
+            self.make_url(user1['user_id'], 'relationship', user2['user_id']),
+            urllib.urlencode(params))
+        return treq.get(url, allow_redirects=False, pool=self.pool)
 
     @inlineCallbacks
     def clear_neo4j(self):
@@ -175,7 +181,7 @@ class TestUserServiceApp(TestCase):
         self.assertEqual(resp.code, http.NOT_FOUND)
 
     @inlineCallbacks
-    def test_create_relationship(self):
+    def test_create_relationship_302(self):
         payload = {
             'username': 'foo',
             'email_address': 'foo@bar.com',
@@ -186,4 +192,40 @@ class TestUserServiceApp(TestCase):
         resp = yield self.create_relationship(user1, user2, 'LIKE')
         self.assertEqual(resp.code, http.FOUND)
         [location] = resp.headers.getRawHeaders('location')
-        self.assertEqual(location, '/users/%s/' % (user1['user_id'],))
+        self.assertEqual(location, '/users/%s/relationship/%s/' % (
+            user1['user_id'], user2['user_id']))
+
+    @inlineCallbacks
+    def test_get_relationship_200(self):
+        payload = {
+            'username': 'foo',
+            'email_address': 'foo@bar.com',
+            'msisdn': '+27000000000',
+        }
+        user1 = yield self.make_user(payload)
+        user2 = yield self.make_user(payload)
+        yield self.create_relationship(user1, user2, 'LIKE', {
+            'foo': 'bar'
+        })
+
+        resp = yield self.get_relationship(user1, user2)
+        self.assertEqual(resp.code, http.OK)
+        self.assertEqual((yield treq.json_content(resp)), {
+            'request_id': None,
+            'type': 'LIKE',
+            'data': {
+                'foo': 'bar',
+            }
+        })
+
+    @inlineCallbacks
+    def test_get_relationship_404(self):
+        user1 = {
+            'user_id': 'fake-uuid1',
+        }
+        user2 = {
+            'user_id': 'fake-uuid2'
+        }
+
+        resp = yield self.get_relationship(user1, user2)
+        self.assertEqual(resp.code, http.NOT_FOUND)

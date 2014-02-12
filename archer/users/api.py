@@ -8,7 +8,8 @@ from twisted.web import http
 
 import treq
 
-from aludel.service import service, handler, get_json_params, APIError
+from aludel.service import (
+    service, handler, get_json_params, APIError, get_params)
 
 DEFAULT_NEO4J_TIMEOUT = 10
 DEFAULT_NEO4J_URL = 'http://localhost:7474'
@@ -44,6 +45,12 @@ def get_node_data(json_payload):
     return neo4j_data['data']
 
 
+def get_relation_data(json_payload):
+    neo4j_data = get_neo4j_data(json_payload)
+    return dict([(key, neo4j_data.get(key)) for key in
+                 ['type', 'data']])
+
+
 class UserServiceError(APIError):
     pass
 
@@ -58,7 +65,7 @@ class UserServiceApp(object):
     def make_uuid(self):
         return uuid4().hex
 
-    def cypher_query(self, query, params):
+    def cypher_query(self, query, params={}):
         return cypher_query(
             query, params=params, pool=self.pool, url=self.conn_str)
 
@@ -85,11 +92,12 @@ class UserServiceApp(object):
         request.redirect('/users/%s/' % (uuid,))
         returnValue({})
 
-    @handler('/users/<string:user_id>/relationship/')
+    @handler('/users/<string:user_id>/relationship/<string:other_user_id>/',
+             methods=['PUT'])
     @inlineCallbacks
-    def create_relationship(self, request, user_id):
+    def create_relationship(self, request, user_id, other_user_id):
         props = get_json_params(
-            request, ['user_id', 'relationship_type', 'relationship_props'])
+            request, ['relationship_type', 'relationship_props'])
         relationship_type = props['relationship_type']
         relationship_props = props['relationship_props']
         if relationship_type not in ['LIKE']:
@@ -105,13 +113,38 @@ class UserServiceApp(object):
             RETURN r
             """ % (relationship_type,), {
             'this_user_id': user_id,
-            'other_user_id': props['user_id'],
+            'other_user_id': other_user_id,
             'relationship_props': relationship_props,
         })
         content = yield treq.content(response)
         if not http_ok(response):
             raise UserServiceError(content)
-        request.redirect(str('/users/%s/' % (user_id,)))
+        request.redirect(
+            str('/users/%s/relationship/%s/' % (user_id, other_user_id)))
+        returnValue({})
+
+    @handler('/users/<string:user_id>/relationship/<string:other_user_id>/',
+             methods=['GET'])
+    @inlineCallbacks
+    def get_relationship(self, request, user_id, other_user_id):
+        response = yield self.cypher_query(
+            """
+            MATCH (this:User)-[r]->(other:User)
+            WHERE this.user_id = {this_user_id}
+                AND other.user_id = {other_user_id}
+            RETURN r
+            """, {
+            'this_user_id': user_id,
+            'other_user_id': other_user_id,
+        })
+        content = yield treq.json_content(response)
+        if not http_ok(response):
+            raise UserServiceError(content)
+
+        if has_node_data(content):
+            returnValue(get_relation_data(content))
+
+        request.setResponseCode(http.NOT_FOUND)
         returnValue({})
 
     @handler('/users/<string:user_id>/', methods=['GET'])
